@@ -1,18 +1,20 @@
-
 import requests
+num1 = float(input("Enter first number: "))
+num2 = float(input("Enter Second number: "))
 
-API_URL = "https://jarellkrismagarso.onrender.com"
+url = "https://jarellkrismagarso.onrender.com/multiply"
 
-try:
-    response = requests.get(API_URL, timeout=60)
-    response.raise_for_status()
-
+params = {
+    "num1": num1,
+    "num2": num2
+}
+response = requests.get(url, params=params)
+if response.status_code == 200:
     data = response.json()
-    print("API Response:", data)
-    print("Message:", data["message"])
-    print("Status:", data["status"])
-
-except requests.exceptions.RequestException as e:
-    print("Request Error:", e)
-except ValueError as e:
-    print("JSON Error:", e)
+    print("First Number:", data["number1"])
+    print("Second Number:", data["number2"])
+    print("Result:", data["result"])
+else:
+    print("Request failed.")
+    print("Status Code:", response.status_code)
+    print(response.text)
