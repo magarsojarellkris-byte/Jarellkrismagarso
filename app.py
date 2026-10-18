@@ -1,3 +1,4 @@
+
 from flask import Flask, jsonify, request, render_template
 
 app = Flask(__name__)
@@ -23,6 +24,21 @@ def say_hello():
         "message": f"Hello, {name}!"
     })
 
+@app.route('/multiply')
+def multiply_numbers():
+    num1 = request.args.get('num1', type=float)
+    num2 = request.args.get('num2', type=float)
+
+    if num1 is None or num2 is None:
+        return jsonify({
+            "error": "Please provide num1 and num2."
+        }), 400
+
+    return jsonify({
+        "number1": num1,
+        "number2": num2,
+        "result": num1 * num2
+    })
+
 if __name__ == '__main__':
     app.run(debug=True)
-
