@@ -1,33 +1,18 @@
 
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student API Interface</title>
+
     <style>
         body {
-        font-family: Arial, sans-serif;
-        max-width: 700px;
-        margin: 40px auto;
-        padding: 20px;
-        }
-        button {
-        }
-        padding: 8px 14px;
-        margin: 5px;
-        cursor: pointer;
-        input {
-        padding: 8px;
-        }
-        #result {
-        }
-            margin-top: 20px;
-            padding: 10px;
-            border: 1px solid #cccccc;
-        body {
             font-family: Arial, sans-serif;
-            background-color: #f2f2f2;
-            margin: 0;
+            max-width: 700px;
+            margin: 40px auto;
             padding: 20px;
+            background-color: #f2f2f2;
         }
 
         h1, h2 {
@@ -52,13 +37,16 @@
             padding: 10px;
             border: 1px solid #ccc;
             border-radius: 5px;
+            margin: 5px 0;
+            max-width: 90%;
         }
 
-        #result, #greeting {
+        #result, #greeting, #multiplyResult {
             background-color: white;
             padding: 15px;
             margin-top: 10px;
             border-radius: 5px;
+            border: 1px solid #ccc;
         }
 
         hr {
@@ -66,50 +54,143 @@
             border-top: 1px solid #ccc;
             margin: 25px 0;
         }
+
+        .section {
+            margin-top: 20px;
+        }
     </style>
 </head>
+
 <body>
     <h1>Student API Interface</h1>
 
-    <button onclick="loadStudent()">Load Student Information</button>
+    <button onclick="loadStudent()">
+        Load Student Information
+    </button>
 
     <div id="result"></div>
 
     <hr>
-    <h2>Greeting API</h2>
-    <input type="text" id="nameInput" placeholder="Enter your first name">
-    <button onclick="sayHello()">Say Hello</button>
-    <p id="greeting"></p>
+
+    <div class="section">
+        <h2>Greeting API</h2>
+
+        <input
+            type="text"
+            id="nameInput"
+            placeholder="Enter your first name"
+        >
+
+        <button onclick="sayHello()">Say Hello</button>
+
+        <p id="greeting"></p>
+    </div>
+
+    <hr>
+
+    <div class="section">
+        <h2>Multiply API</h2>
+
+        <p>Enter two numbers to multiply:</p>
+
+        <input
+            type="number"
+            id="num1"
+            placeholder="Enter first number"
+            step="any"
+        >
+
+        <br>
+
+        <input
+            type="number"
+            id="num2"
+            placeholder="Enter second number"
+            step="any"
+        >
+
+        <br>
+
+        <button onclick="multiplyNumbers()">Multiply</button>
+
+        <div id="multiplyResult"></div>
+    </div>
 
     <script>
         function loadStudent() {
             fetch('/student')
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Unable to load student data');
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     document.getElementById('result').innerHTML =
-                        '<p><b>Student ID: </b>' + data.student_id + '</p>' +
-                        '<p><b>Name: </b>' + data.name + '</p>' +
-                        '<p><b>Program: </b>' + data.program + '</p>' +
-                        '<p><b>Year: </b>' + data.year + '</p>' +
-                        '<p><b>Section: </b>' + data.section + '</p>';
+                        '<p><b>Student ID:</b> ' + data.student_id + '</p>' +
+                        '<p><b>Name:</b> ' + data.name + '</p>' +
+                        '<p><b>Program:</b> ' + data.program + '</p>' +
+                        '<p><b>Year:</b> ' + data.year + '</p>' +
+                        '<p><b>Section:</b> ' + data.section + '</p>';
                 })
                 .catch(error => {
                     console.error(error);
-                    document.getElementById('result').innerHTML =
-                        '<p>Unable to retrieve data.</p>';
+                    document.getElementById('result').textContent =
+                        'Unable to retrieve student information.';
                 });
         }
 
         function sayHello() {
-            const name = document.getElementById('nameInput').value;
+            const name =
+                document.getElementById('nameInput').value.trim();
+
             fetch('/hello?name=' + encodeURIComponent(name))
                 .then(response => response.json())
                 .then(data => {
-                    document.getElementById('greeting').innerText = data.message;
+                    document.getElementById('greeting').textContent =
+                        data.message || data.error;
                 })
                 .catch(error => {
-                    document.getElementById('greeting').innerText =
+                    console.error(error);
+                    document.getElementById('greeting').textContent =
                         'Unable to retrieve greeting.';
+                });
+        }
+
+        function multiplyNumbers() {
+            const num1 = document.getElementById('num1').value;
+            const num2 = document.getElementById('num2').value;
+            const output = document.getElementById('multiplyResult');
+
+            if (num1.trim() === '' || num2.trim() === '') {
+                output.textContent = 'Please enter both numbers.';
+                return;
+            }
+
+            const params = new URLSearchParams({
+                num1: num1,
+                num2: num2
+            });
+
+            fetch('/multiply?' + params.toString())
+                .then(async response => {
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(data.error || 'Request failed');
+                    }
+
+                    return data;
+                })
+                .then(data => {
+                    output.innerHTML =
+                        '<p><b>First Number:</b> ' + data.number1 + '</p>' +
+                        '<p><b>Second Number:</b> ' + data.number2 + '</p>' +
+                        '<p><b>Result:</b> ' + data.result + '</p>';
+                })
+                .catch(error => {
+                    console.error(error);
+                    output.textContent = error.message;
                 });
         }
     </script>
