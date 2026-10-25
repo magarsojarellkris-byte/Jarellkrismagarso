@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -31,11 +30,31 @@
             border: none;
             border-radius: 5px;
             cursor: pointer;
-            margin: 10px 0;
+            margin: 6px 5px 6px 0;
         }
 
         button:hover {
             background-color: #0056b3;
+        }
+
+        .edit-button {
+            background-color: #198754;
+        }
+
+        .edit-button:hover {
+            background-color: #146c43;
+        }
+
+        .delete-button {
+            background-color: #dc3545;
+        }
+
+        .delete-button:hover {
+            background-color: #a71d2a;
+        }
+
+        .clear-button {
+            background-color: #6c757d;
         }
 
         input, select {
@@ -53,7 +72,8 @@
         #studentList,
         #programResults,
         #sectionResults,
-        #yearResults {
+        #yearResults,
+        #saveResult {
             background-color: white;
             padding: 15px;
             margin-top: 10px;
@@ -124,6 +144,94 @@
 
     <hr>
 
+    <!-- Add, Edit, and Delete Students -->
+    <div class="section">
+        <h2>Manage Students</h2>
+
+        <p>
+            Fill in the student information to add a student.
+            To edit an existing student, click Edit beside their record,
+            change the fields, and click Update Student.
+        </p>
+
+        <form id="studentForm">
+            <label for="student_id">Student ID:</label>
+            <input
+                type="text"
+                id="student_id"
+                required
+                placeholder="e.g. 24-00138"
+            >
+
+            <label for="student_name">Name:</label>
+            <input
+                type="text"
+                id="student_name"
+                required
+                placeholder="Enter full name"
+            >
+
+            <label for="student_program">Program:</label>
+            <select id="student_program" required>
+                <option value="">Select a program</option>
+                <option value="BSIT">BSIT</option>
+                <option value="BSHM">BSHM</option>
+                <option value="BSED">BSED</option>
+            </select>
+
+            <label for="student_year">Year:</label>
+            <select id="student_year" required>
+                <option value="">Select year level</option>
+                <option value="1">1st Year</option>
+                <option value="2">2nd Year</option>
+                <option value="3">3rd Year</option>
+                <option value="4">4th Year</option>
+            </select>
+
+            <label for="student_section">Section:</label>
+            <select id="student_section" required>
+                <option value="">Select section</option>
+                <option value="A">Section A</option>
+                <option value="B">Section B</option>
+                <option value="C">Section C</option>
+            </select>
+
+            <label for="manageDatabaseId">Database ID (for editing):</label>
+            <input
+                type="number"
+                id="manageDatabaseId"
+                min="1"
+                step="1"
+                placeholder="Select Edit on a student record"
+            >
+
+            <button type="submit" id="addStudentButton">
+                Add Student
+            </button>
+
+            <button
+                type="button"
+                id="editStudentButton"
+                class="edit-button"
+                onclick="editStudent()"
+            >
+                Update Student
+            </button>
+
+            <button
+                type="button"
+                class="clear-button"
+                onclick="clearStudentForm()"
+            >
+                Clear Form
+            </button>
+        </form>
+
+        <div id="saveResult" aria-live="polite"></div>
+    </div>
+
+    <hr>
+
     <!-- Filter by Program -->
     <div class="section">
         <h2>Search Students by Program</h2>
@@ -166,7 +274,7 @@
 
     <hr>
 
-    <!-- NEW: Filter by Year Level -->
+    <!-- Filter by Year Level -->
     <div class="section">
         <h2>Search Students by Year Level</h2>
 
@@ -224,7 +332,7 @@
     </div>
 
     <script>
-        // Common API request function
+        // Common GET API request function
         async function apiRequest(url) {
             const response = await fetch(url);
             let data;
@@ -236,7 +344,38 @@
             }
 
             if (!response.ok) {
-                throw new Error(data.error || "The request failed.");
+                throw new Error(data.error || data.message || "The request failed.");
+            }
+
+            return data;
+        }
+
+        // Common POST, PUT, and DELETE request function
+        async function sendStudentRequest(url, method, studentData = null) {
+            const options = {
+                method: method,
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            };
+
+            if (studentData !== null) {
+                options.body = JSON.stringify(studentData);
+            }
+
+            const response = await fetch(url, options);
+            let data = {};
+
+            try {
+                data = await response.json();
+            } catch {
+                if (!response.ok) {
+                    throw new Error("Request failed with status " + response.status);
+                }
+            }
+
+            if (!response.ok) {
+                throw new Error(data.error || data.message || "The request failed.");
             }
 
             return data;
@@ -294,7 +433,7 @@
             output.appendChild(record);
         }
 
-        // Display a list of students
+        // Display all students with Edit and Delete buttons
         function displayStudents(students, output, emptyMessage) {
             output.replaceChildren();
 
@@ -307,28 +446,50 @@
                 return;
             }
 
-            students.forEach(student => {
-                const p = document.createElement("p");
-                p.className = "student-record";
+            const yearLabels = {
+                1: "1st Year",
+                2: "2nd Year",
+                3: "3rd Year",
+                4: "4th Year"
+            };
 
-                const yearLabels = {
-                    1: "1st Year",
-                    2: "2nd Year",
-                    3: "3rd Year",
-                    4: "4th Year"
-                };
+            students.forEach(student => {
+                const record = document.createElement("div");
+                record.className = "student-record";
 
                 const year = student.year ?? student.year_level;
                 const yearText = yearLabels[year] ?? year ?? "N/A";
 
-                p.textContent =
-                    (student.student_id ?? student.id ?? "N/A") +
-                    " - " + (student.name ?? "Unknown") +
-                    " | " + (student.program ?? "N/A") +
-                    " | " + yearText +
-                    " | Section " + (student.section ?? "N/A");
+                const details = document.createElement("p");
+                details.textContent =
+                    "Database ID: " + (student.id ?? "N/A") +
+                    " | Student ID: " + (student.student_id ?? "N/A") +
+                    " | Name: " + (student.name ?? "Unknown") +
+                    " | Program: " + (student.program ?? "N/A") +
+                    " | Year: " + yearText +
+                    " | Section: " + (student.section ?? "N/A");
 
-                output.appendChild(p);
+                record.appendChild(details);
+
+                const editButton = document.createElement("button");
+                editButton.type = "button";
+                editButton.className = "edit-button";
+                editButton.textContent = "Edit";
+                editButton.addEventListener("click", function() {
+                    fillStudentForm(student);
+                });
+                record.appendChild(editButton);
+
+                const deleteButton = document.createElement("button");
+                deleteButton.type = "button";
+                deleteButton.className = "delete-button";
+                deleteButton.textContent = "Delete";
+                deleteButton.addEventListener("click", function() {
+                    deleteStudent(student.id);
+                });
+                record.appendChild(deleteButton);
+
+                output.appendChild(record);
             });
         }
 
@@ -367,6 +528,159 @@
             } catch (error) {
                 showError(output, error);
             }
+        }
+
+        // Get and validate student form data
+        function getStudentData() {
+            const studentData = {
+                student_id: document.getElementById("student_id").value.trim(),
+                name: document.getElementById("student_name").value.trim(),
+                program: document.getElementById("student_program").value,
+                year: Number(document.getElementById("student_year").value),
+                section: document.getElementById("student_section").value
+            };
+
+            if (
+                !studentData.student_id ||
+                !studentData.name ||
+                !studentData.program ||
+                !studentData.section ||
+                ![1, 2, 3, 4].includes(studentData.year)
+            ) {
+                throw new Error("Please complete all fields and select a valid year level.");
+            }
+
+            return studentData;
+        }
+
+        // ADD student using POST /api/students
+        document.getElementById("studentForm").addEventListener("submit", async function(event) {
+            event.preventDefault();
+
+            const output = document.getElementById("saveResult");
+
+            try {
+                const studentData = getStudentData();
+
+                output.className = "";
+                output.textContent = "Adding student...";
+
+                const data = await sendStudentRequest(
+                    "/api/students",
+                    "POST",
+                    studentData
+                );
+
+                output.className = "success";
+                output.textContent = data.message || "Student added successfully!";
+
+                this.reset();
+
+                // Refresh list after successful addition
+                await loadStudents();
+
+            } catch (error) {
+                output.className = "error";
+                output.textContent = error.message;
+            }
+        });
+
+        // Fill form when Edit is clicked
+        function fillStudentForm(student) {
+            document.getElementById("manageDatabaseId").value = student.id ?? "";
+            document.getElementById("student_id").value = student.student_id ?? "";
+            document.getElementById("student_name").value = student.name ?? "";
+            document.getElementById("student_program").value = student.program ?? "";
+            document.getElementById("student_year").value =
+                student.year ?? student.year_level ?? "";
+            document.getElementById("student_section").value = student.section ?? "";
+
+            const output = document.getElementById("saveResult");
+            output.className = "";
+            output.textContent =
+                "Student loaded into the form. Edit the details, then click Update Student.";
+
+            document.getElementById("studentForm").scrollIntoView({
+                behavior: "smooth",
+                block: "start"
+            });
+        }
+
+        // EDIT student using PUT /api/students/<id>
+        async function editStudent() {
+            const id = document.getElementById("manageDatabaseId").value.trim();
+            const output = document.getElementById("saveResult");
+
+            try {
+                if (!id || !Number.isSafeInteger(Number(id)) || Number(id) < 1) {
+                    throw new Error("Click Edit beside a student record first.");
+                }
+
+                const studentData = getStudentData();
+
+                output.className = "";
+                output.textContent = "Updating student...";
+
+                const data = await sendStudentRequest(
+                    "/api/students/" + encodeURIComponent(id),
+                    "PUT",
+                    studentData
+                );
+
+                output.className = "success";
+                output.textContent = data.message || "Student updated successfully!";
+
+                // Refresh list after successful update
+                await loadStudents();
+
+            } catch (error) {
+                output.className = "error";
+                output.textContent = error.message;
+            }
+        }
+
+        // DELETE student using DELETE /api/students/<id>
+        async function deleteStudent(id) {
+            const output = document.getElementById("saveResult");
+
+            if (!id) {
+                output.className = "error";
+                output.textContent = "Invalid database ID. Cannot delete this record.";
+                return;
+            }
+
+            if (!confirm("Are you sure you want to delete this student?")) {
+                return;
+            }
+
+            try {
+                output.className = "";
+                output.textContent = "Deleting student...";
+
+                const data = await sendStudentRequest(
+                    "/api/students/" + encodeURIComponent(id),
+                    "DELETE"
+                );
+
+                output.className = "success";
+                output.textContent = data.message || "Student deleted successfully!";
+
+                // Refresh list after successful deletion
+                await loadStudents();
+
+            } catch (error) {
+                output.className = "error";
+                output.textContent = error.message;
+            }
+        }
+
+        // Clear student form
+        function clearStudentForm() {
+            document.getElementById("studentForm").reset();
+
+            const output = document.getElementById("saveResult");
+            output.className = "";
+            output.textContent = "";
         }
 
         // Search students by program
@@ -425,7 +739,7 @@
             }
         }
 
-        // NEW: Search students by year level
+        // Search students by year level
         async function loadStudentsByYear() {
             const year = document.getElementById("yearInput").value;
             const output = document.getElementById("yearResults");
@@ -541,6 +855,9 @@
                 showError(output, error);
             }
         }
+
+        // Automatically load students when the page opens
+        document.addEventListener("DOMContentLoaded", loadStudents);
     </script>
 </body>
 </html>

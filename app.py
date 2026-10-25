@@ -174,7 +174,230 @@ def get_students_by_year():
         return jsonify([dict(student) for student in students])
     finally:
         conn.close()
+        
+# Add a new student
+@app.route('/api/students', methods=['POST'])
+def add_student():
+    data = request.get_json(silent=True)
 
+    if not data:
+        return jsonify({
+            "error": "Please provide student data in JSON format."
+        }), 400
+
+    required_fields = [
+        'student_id', 'name', 'program', 'year', 'section'
+    ]
+
+    for field in required_fields:
+        if field not in data or str(data[field]).strip() == '':
+            return jsonify({
+                "error": f"Missing required field: {field}"
+            }), 400
+
+    try:
+        year = int(data['year'])
+    except (ValueError, TypeError):
+        return jsonify({
+            "error": "Year must be a number from 1 to 4."
+        }), 400
+
+    if year not in (1, 2, 3, 4):
+        return jsonify({
+            "error": "Year must be 1, 2, 3, or 4."
+        }), 400
+
+    conn = get_db_connection()
+
+    try:
+        cursor = conn.execute(
+            """
+            INSERT INTO students
+            (student_id, name, program, year, section)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                str(data['student_id']).strip(),
+                str(data['name']).strip(),
+                str(data['program']).strip(),
+                year,
+                str(data['section']).strip()
+            )
+        )
+
+        conn.commit()
+        new_id = cursor.lastrowid
+
+        return jsonify({
+            "message": "Student added successfully.",
+            "id": new_id
+        }), 201
+
+    except sqlite3.IntegrityError:
+        conn.rollback()
+        return jsonify({
+            "error": "Could not add student. The student ID may already exist."
+        }), 409
+
+    except sqlite3.Error:
+        conn.rollback()
+        app.logger.exception("Database error while adding student.")
+        return jsonify({
+            "error": "A database error occurred."
+        }), 500
+
+    finally:
+        conn.close()
+
+# Get a student by ID
+@app.route('/api/students/<int:id>', methods=['GET'])
+def api_get_student(id):
+    conn = get_db_connection()
+
+    try:
+        student = conn.execute(
+            'SELECT * FROM students WHERE id = ?',
+            (id,)
+        ).fetchone()
+
+        if student is None:
+            return jsonify({
+                "error": "Student not found."
+            }), 404
+
+        return jsonify(dict(student)), 200
+
+    finally:
+        conn.close()
+
+
+# Update an existing student
+@app.route('/api/students/<int:id>', methods=['PUT'])
+def update_student(id):
+    data = request.get_json(silent=True)
+
+    if not isinstance(data, dict):
+        return jsonify({
+            "error": "Please provide student data in JSON format."
+        }), 400
+
+    required_fields = [
+        'student_id', 'name', 'program', 'year', 'section'
+    ]
+
+    for field in required_fields:
+        if field not in data or str(data[field]).strip() == '':
+            return jsonify({
+                "error": f"Missing required field: {field}"
+            }), 400
+
+    try:
+        year = int(data['year'])
+    except (ValueError, TypeError):
+        return jsonify({
+            "error": "Year must be a number from 1 to 4."
+        }), 400
+
+    if year not in (1, 2, 3, 4):
+        return jsonify({
+            "error": "Year must be 1, 2, 3, or 4."
+        }), 400
+
+    conn = get_db_connection()
+
+    try:
+        student = conn.execute(
+            'SELECT id FROM students WHERE id = ?',
+            (id,)
+        ).fetchone()
+
+        if student is None:
+            return jsonify({
+                "error": "Student not found."
+            }), 404
+
+        conn.execute(
+            """
+            UPDATE students
+            SET student_id = ?,
+                name = ?,
+                program = ?,
+                year = ?,
+                section = ?
+            WHERE id = ?
+            """,
+            (
+                str(data['student_id']).strip(),
+                str(data['name']).strip(),
+                str(data['program']).strip(),
+                year,
+                str(data['section']).strip(),
+                id
+            )
+        )
+
+        conn.commit()
+
+        return jsonify({
+            "message": "Student updated successfully.",
+            "id": id
+        }), 200
+
+    except sqlite3.IntegrityError:
+        conn.rollback()
+        return jsonify({
+            "error": "Could not update student. The student ID may already exist."
+        }), 409
+
+    except sqlite3.Error:
+        conn.rollback()
+        app.logger.exception("Database error while updating student.")
+        return jsonify({
+            "error": "A database error occurred."
+        }), 500
+
+    finally:
+        conn.close()
+
+
+# Delete a student
+@app.route('/api/students/<int:id>', methods=['DELETE'])
+def delete_student(id):
+    conn = get_db_connection()
+
+    try:
+        cursor = conn.execute(
+            'DELETE FROM students WHERE id = ?',
+            (id,)
+        )
+
+        if cursor.rowcount == 0:
+            return jsonify({
+                "error": "Student not found."
+            }), 404
+
+        conn.commit()
+
+        return jsonify({
+            "message": "Student deleted successfully.",
+            "id": id
+        }), 200
+
+    except sqlite3.Error:
+        conn.rollback()
+        app.logger.exception("Database error while deleting student.")
+        return jsonify({
+            "error": "A database error occurred."
+        }), 500
+
+    finally:
+        conn.close()
+@app.route('/api/students', methods=['GET'])
+def api_students():
+    conn = get_db_connection()
+    rows = conn.execute('SELECT * FROM students').fetchall()
+    conn.close()
+    return jsonify([dict(row) for row in rows])
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5001, debug=True)
