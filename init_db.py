@@ -16,20 +16,17 @@ CREATE TABLE IF NOT EXISTS students (
 )
 ''')
 
-# Clear existing student records
 cursor.execute('DELETE FROM students')
 
-# Six realistic, fictional sample student records
 students = [
     ('24-00138', 'Jarell Kris Magarso', 'BSIT', 1, 'B'),
-    ('24-00132', 'Sofia Mendoza', 'BSIT', 1, 'B'),
+    ('24-00132', 'Sofia Mendoza', 'BSHM', 1, 'B'),
     ('25-00133', 'Daniel Garcia', 'BSIT', 2, 'A'),
-    ('21-00134', 'Isabella Torres', 'BSIT', 1, 'B'),
+    ('21-00134', 'Isabella Torres', 'BSHM', 1, 'B'),
     ('23-00135', 'Miguel Flores', 'BSIT', 4, 'A'),
-    ('25-00136', 'Andrea Castillo', 'BSIt', 2, 'C')
+    ('25-00136', 'Andrea Castillo', 'BSED', 2, 'C')
 ]
 
-# Insert the sample records
 cursor.executemany('''
 INSERT INTO students (student_id, name, program, year, section)
 VALUES (?, ?, ?, ?, ?)
