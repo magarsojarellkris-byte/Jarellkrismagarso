@@ -41,7 +41,7 @@
             max-width: 90%;
         }
 
-        #result, #greeting, #multiplyResult {
+        #result, #greeting, #multiplyResult, #studentList {
             background-color: white;
             padding: 15px;
             margin-top: 10px;
@@ -72,6 +72,18 @@
 
     <hr>
 
+    <!-- Students from Database -->
+    <div class="section">
+        <h2>Students from Database</h2>
+
+        <button onclick="loadStudents()">Load Students</button>
+
+        <div id="studentList"></div>
+    </div>
+
+    <hr>
+
+    <!-- Greeting API -->
     <div class="section">
         <h2>Greeting API</h2>
 
@@ -88,6 +100,7 @@
 
     <hr>
 
+    <!-- Multiply API -->
     <div class="section">
         <h2>Multiply API</h2>
 
@@ -137,6 +150,48 @@
                     console.error(error);
                     document.getElementById('result').textContent =
                         'Unable to retrieve student information.';
+                });
+        }
+
+        // Load all students from the database
+        function loadStudents() {
+            const studentList = document.getElementById('studentList');
+
+            studentList.textContent = 'Loading students...';
+
+            fetch('/students')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Unable to load student records');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    let output = '';
+
+                    if (data.length === 0) {
+                        studentList.textContent =
+                            'No student records found.';
+                        return;
+                    }
+
+                    data.forEach(student => {
+                        output +=
+                            '<p>' +
+                            '<b>' + student.student_id + '</b> - ' +
+                            student.name + ' | ' +
+                            student.program + ' | Year ' +
+                            student.year + ' | Section ' +
+                            student.section +
+                            '</p>';
+                    });
+
+                    studentList.innerHTML = output;
+                })
+                .catch(error => {
+                    console.error(error);
+                    studentList.textContent =
+                        'Unable to retrieve student records.';
                 });
         }
 
