@@ -7,15 +7,20 @@
     <title>Student API Interface</title>
 
     <style>
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             font-family: Arial, sans-serif;
             max-width: 700px;
             margin: 40px auto;
             padding: 20px;
             background-color: #f2f2f2;
+            color: #333;
         }
 
-        h1, h2 {
+        h1, h2, h3 {
             color: #333;
         }
 
@@ -33,20 +38,29 @@
             background-color: #0056b3;
         }
 
-        input {
+        input, select {
+            display: block;
+            width: 100%;
             padding: 10px;
             border: 1px solid #ccc;
             border-radius: 5px;
-            margin: 5px 0;
-            max-width: 90%;
+            margin: 8px 0;
         }
 
-        #result, #greeting, #multiplyResult, #studentList {
+        #result,
+        #greeting,
+        #multiplyResult,
+        #studentList,
+        #programResults,
+        #sectionResults,
+        #yearResults {
             background-color: white;
             padding: 15px;
             margin-top: 10px;
             border-radius: 5px;
             border: 1px solid #ccc;
+            overflow-wrap: anywhere;
+            min-height: 20px;
         }
 
         hr {
@@ -58,27 +72,118 @@
         .section {
             margin-top: 20px;
         }
+
+        .student-record {
+            border-bottom: 1px solid #ddd;
+            padding: 8px 0;
+        }
+
+        .student-record:last-child {
+            border-bottom: none;
+        }
+
+        .error {
+            color: #c62828;
+        }
+
+        .success {
+            color: #176b35;
+        }
     </style>
 </head>
 
 <body>
     <h1>Student API Interface</h1>
 
-    <button onclick="loadStudent()">
-        Load Student Information
-    </button>
+    <!-- Single Student -->
+    <div class="section">
+        <h2>Student Information</h2>
 
-    <div id="result"></div>
+        <label for="studentIdInput">Database Student ID:</label>
+        <input type="number" id="studentIdInput" min="1" step="1" value="1">
+
+        <button type="button" onclick="loadStudent()">
+            Load Student Information
+        </button>
+
+        <div id="result" aria-live="polite"></div>
+    </div>
 
     <hr>
 
-    <!-- Students from Database -->
+    <!-- All Students -->
     <div class="section">
         <h2>Students from Database</h2>
 
-        <button onclick="loadStudents()">Load Students</button>
+        <button type="button" onclick="loadStudents()">
+            Load Students
+        </button>
 
-        <div id="studentList"></div>
+        <div id="studentList" aria-live="polite"></div>
+    </div>
+
+    <hr>
+
+    <!-- Filter by Program -->
+    <div class="section">
+        <h2>Search Students by Program</h2>
+
+        <label for="programInput">Choose a program:</label>
+        <select id="programInput">
+            <option value="">Select a program</option>
+            <option value="BSIT">BSIT</option>
+            <option value="BSHM">BSHM</option>
+            <option value="BSED">BSED</option>
+        </select>
+
+        <button type="button" onclick="loadStudentsByProgram()">
+            Search Program
+        </button>
+
+        <div id="programResults" aria-live="polite"></div>
+    </div>
+
+    <hr>
+
+    <!-- Filter by Section -->
+    <div class="section">
+        <h2>Search Students by Section</h2>
+
+        <label for="sectionInput">Choose a section:</label>
+        <select id="sectionInput">
+            <option value="">Select a section</option>
+            <option value="A">Section A</option>
+            <option value="B">Section B</option>
+            <option value="C">Section C</option>
+        </select>
+
+        <button type="button" onclick="loadStudentsBySection()">
+            Search Section
+        </button>
+
+        <div id="sectionResults" aria-live="polite"></div>
+    </div>
+
+    <hr>
+
+    <!-- NEW: Filter by Year Level -->
+    <div class="section">
+        <h2>Search Students by Year Level</h2>
+
+        <label for="yearInput">Choose a year level:</label>
+        <select id="yearInput">
+            <option value="">Select a year level</option>
+            <option value="1">1st Year</option>
+            <option value="2">2nd Year</option>
+            <option value="3">3rd Year</option>
+            <option value="4">4th Year</option>
+        </select>
+
+        <button type="button" onclick="loadStudentsByYear()">
+            Search Year Level
+        </button>
+
+        <div id="yearResults" aria-live="polite"></div>
     </div>
 
     <hr>
@@ -87,15 +192,14 @@
     <div class="section">
         <h2>Greeting API</h2>
 
-        <input
-            type="text"
-            id="nameInput"
-            placeholder="Enter your first name"
-        >
+        <label for="nameInput">Your name:</label>
+        <input type="text" id="nameInput" placeholder="Enter your first name">
 
-        <button onclick="sayHello()">Say Hello</button>
+        <button type="button" onclick="sayHello()">
+            Say Hello
+        </button>
 
-        <p id="greeting"></p>
+        <p id="greeting" aria-live="polite"></p>
     </div>
 
     <hr>
@@ -106,147 +210,336 @@
 
         <p>Enter two numbers to multiply:</p>
 
-        <input
-            type="number"
-            id="num1"
-            placeholder="Enter first number"
-            step="any"
-        >
+        <label for="num1">First number:</label>
+        <input type="number" id="num1" placeholder="Enter first number" step="any">
 
-        <br>
+        <label for="num2">Second number:</label>
+        <input type="number" id="num2" placeholder="Enter second number" step="any">
 
-        <input
-            type="number"
-            id="num2"
-            placeholder="Enter second number"
-            step="any"
-        >
+        <button type="button" onclick="multiplyNumbers()">
+            Multiply
+        </button>
 
-        <br>
-
-        <button onclick="multiplyNumbers()">Multiply</button>
-
-        <div id="multiplyResult"></div>
+        <div id="multiplyResult" aria-live="polite"></div>
     </div>
 
     <script>
-        function loadStudent() {
-            fetch('/student')
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Unable to load student data');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    document.getElementById('result').innerHTML =
-                        '<p><b>Student ID:</b> ' + data.student_id + '</p>' +
-                        '<p><b>Name:</b> ' + data.name + '</p>' +
-                        '<p><b>Program:</b> ' + data.program + '</p>' +
-                        '<p><b>Year:</b> ' + data.year + '</p>' +
-                        '<p><b>Section:</b> ' + data.section + '</p>';
-                })
-                .catch(error => {
-                    console.error(error);
-                    document.getElementById('result').textContent =
-                        'Unable to retrieve student information.';
-                });
+        // Common API request function
+        async function apiRequest(url) {
+            const response = await fetch(url);
+            let data;
+
+            try {
+                data = await response.json();
+            } catch {
+                throw new Error("The server returned an invalid response.");
+            }
+
+            if (!response.ok) {
+                throw new Error(data.error || "The request failed.");
+            }
+
+            return data;
         }
 
-        // Load all students from the database
-        function loadStudents() {
-            const studentList = document.getElementById('studentList');
+        // Display an error message
+        function showError(output, error) {
+            console.error(error);
+            output.replaceChildren();
 
-            studentList.textContent = 'Loading students...';
+            const message = document.createElement("p");
+            message.className = "error";
+            message.textContent = error.message || "Something went wrong.";
 
-            fetch('/students')
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Unable to load student records');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    let output = '';
-
-                    if (data.length === 0) {
-                        studentList.textContent =
-                            'No student records found.';
-                        return;
-                    }
-
-                    data.forEach(student => {
-                        output +=
-                            '<p>' +
-                            '<b>' + student.student_id + '</b> - ' +
-                            student.name + ' | ' +
-                            student.program + ' | Year ' +
-                            student.year + ' | Section ' +
-                            student.section +
-                            '</p>';
-                    });
-
-                    studentList.innerHTML = output;
-                })
-                .catch(error => {
-                    console.error(error);
-                    studentList.textContent =
-                        'Unable to retrieve student records.';
-                });
+            output.appendChild(message);
         }
 
-        function sayHello() {
-            const name =
-                document.getElementById('nameInput').value.trim();
+        // Display one student's information
+        function displayStudent(student, output) {
+            const record = document.createElement("div");
 
-            fetch('/hello?name=' + encodeURIComponent(name))
-                .then(response => response.json())
-                .then(data => {
-                    document.getElementById('greeting').textContent =
-                        data.message || data.error;
-                })
-                .catch(error => {
-                    console.error(error);
-                    document.getElementById('greeting').textContent =
-                        'Unable to retrieve greeting.';
-                });
+            const yearLabels = {
+                1: "1st Year",
+                2: "2nd Year",
+                3: "3rd Year",
+                4: "4th Year"
+            };
+
+            const year = student.year ?? student.year_level;
+
+            const fields = [
+                ["Database ID", student.id],
+                ["Student ID", student.student_id],
+                ["Name", student.name],
+                ["Program", student.program],
+                ["Year Level", yearLabels[year] ?? year],
+                ["Section", student.section]
+            ];
+
+            fields.forEach(([label, value]) => {
+                if (value === undefined || value === null) {
+                    return;
+                }
+
+                const p = document.createElement("p");
+                const b = document.createElement("strong");
+
+                b.textContent = label + ": ";
+                p.appendChild(b);
+                p.appendChild(document.createTextNode(String(value)));
+
+                record.appendChild(p);
+            });
+
+            output.appendChild(record);
         }
 
-        function multiplyNumbers() {
-            const num1 = document.getElementById('num1').value;
-            const num2 = document.getElementById('num2').value;
-            const output = document.getElementById('multiplyResult');
+        // Display a list of students
+        function displayStudents(students, output, emptyMessage) {
+            output.replaceChildren();
 
-            if (num1.trim() === '' || num2.trim() === '') {
-                output.textContent = 'Please enter both numbers.';
+            if (!Array.isArray(students)) {
+                throw new Error("Unexpected student data format.");
+            }
+
+            if (students.length === 0) {
+                output.textContent = emptyMessage;
                 return;
             }
 
-            const params = new URLSearchParams({
-                num1: num1,
-                num2: num2
+            students.forEach(student => {
+                const p = document.createElement("p");
+                p.className = "student-record";
+
+                const yearLabels = {
+                    1: "1st Year",
+                    2: "2nd Year",
+                    3: "3rd Year",
+                    4: "4th Year"
+                };
+
+                const year = student.year ?? student.year_level;
+                const yearText = yearLabels[year] ?? year ?? "N/A";
+
+                p.textContent =
+                    (student.student_id ?? student.id ?? "N/A") +
+                    " - " + (student.name ?? "Unknown") +
+                    " | " + (student.program ?? "N/A") +
+                    " | " + yearText +
+                    " | Section " + (student.section ?? "N/A");
+
+                output.appendChild(p);
             });
+        }
 
-            fetch('/multiply?' + params.toString())
-                .then(async response => {
-                    const data = await response.json();
+        // Load one student by database ID
+        async function loadStudent() {
+            const id = document.getElementById("studentIdInput").value.trim();
+            const output = document.getElementById("result");
 
-                    if (!response.ok) {
-                        throw new Error(data.error || 'Request failed');
-                    }
+            if (!id || !Number.isSafeInteger(Number(id)) || Number(id) < 1) {
+                output.textContent = "Please enter a valid student ID.";
+                return;
+            }
 
-                    return data;
-                })
-                .then(data => {
-                    output.innerHTML =
-                        '<p><b>First Number:</b> ' + data.number1 + '</p>' +
-                        '<p><b>Second Number:</b> ' + data.number2 + '</p>' +
-                        '<p><b>Result:</b> ' + data.result + '</p>';
-                })
-                .catch(error => {
-                    console.error(error);
-                    output.textContent = error.message;
+            output.textContent = "Loading student...";
+
+            try {
+                const student = await apiRequest(
+                    "/students/" + encodeURIComponent(id)
+                );
+
+                output.replaceChildren();
+                displayStudent(student, output);
+            } catch (error) {
+                showError(output, error);
+            }
+        }
+
+        // Load all students
+        async function loadStudents() {
+            const output = document.getElementById("studentList");
+            output.textContent = "Loading students...";
+
+            try {
+                const students = await apiRequest("/students");
+                displayStudents(students, output, "No student records found.");
+            } catch (error) {
+                showError(output, error);
+            }
+        }
+
+        // Search students by program
+        async function loadStudentsByProgram() {
+            const program = document.getElementById("programInput").value;
+            const output = document.getElementById("programResults");
+
+            if (!program) {
+                output.textContent = "Please select a program.";
+                return;
+            }
+
+            output.textContent = "Loading students...";
+
+            try {
+                const params = new URLSearchParams({ program });
+                const students = await apiRequest(
+                    "/students/program?" + params.toString()
+                );
+
+                displayStudents(
+                    students,
+                    output,
+                    "No students found for " + program + "."
+                );
+            } catch (error) {
+                showError(output, error);
+            }
+        }
+
+        // Search students by section
+        async function loadStudentsBySection() {
+            const section = document.getElementById("sectionInput").value;
+            const output = document.getElementById("sectionResults");
+
+            if (!section) {
+                output.textContent = "Please select a section.";
+                return;
+            }
+
+            output.textContent = "Loading students...";
+
+            try {
+                const params = new URLSearchParams({ section });
+                const students = await apiRequest(
+                    "/students/section?" + params.toString()
+                );
+
+                displayStudents(
+                    students,
+                    output,
+                    "No students found in Section " + section + "."
+                );
+            } catch (error) {
+                showError(output, error);
+            }
+        }
+
+        // NEW: Search students by year level
+        async function loadStudentsByYear() {
+            const year = document.getElementById("yearInput").value;
+            const output = document.getElementById("yearResults");
+
+            if (!year) {
+                output.textContent = "Please select a year level.";
+                return;
+            }
+
+            output.textContent = "Loading students...";
+
+            try {
+                const params = new URLSearchParams({ year });
+                const students = await apiRequest(
+                    "/students/year?" + params.toString()
+                );
+
+                const labels = {
+                    1: "1st Year",
+                    2: "2nd Year",
+                    3: "3rd Year",
+                    4: "4th Year"
+                };
+
+                output.replaceChildren();
+
+                const heading = document.createElement("h3");
+                heading.textContent = "Students - " + labels[year];
+                output.appendChild(heading);
+
+                displayStudents(
+                    students,
+                    output,
+                    "No students found in " + labels[year] + "."
+                );
+            } catch (error) {
+                showError(output, error);
+            }
+        }
+
+        // Greeting API
+        async function sayHello() {
+            const name = document.getElementById("nameInput").value.trim();
+            const output = document.getElementById("greeting");
+
+            if (!name) {
+                output.textContent = "Please enter your name.";
+                return;
+            }
+
+            output.textContent = "Loading greeting...";
+
+            try {
+                const params = new URLSearchParams({ name });
+                const data = await apiRequest("/hello?" + params.toString());
+                output.textContent = data.message;
+            } catch (error) {
+                showError(output, error);
+            }
+        }
+
+        // Multiply API
+        async function multiplyNumbers() {
+            const num1Input = document.getElementById("num1");
+            const num2Input = document.getElementById("num2");
+            const output = document.getElementById("multiplyResult");
+
+            if (
+                num1Input.value.trim() === "" ||
+                num2Input.value.trim() === ""
+            ) {
+                output.textContent = "Please enter both numbers.";
+                return;
+            }
+
+            const num1 = num1Input.valueAsNumber;
+            const num2 = num2Input.valueAsNumber;
+
+            if (!Number.isFinite(num1) || !Number.isFinite(num2)) {
+                output.textContent = "Please enter valid numbers.";
+                return;
+            }
+
+            output.textContent = "Calculating...";
+
+            try {
+                const params = new URLSearchParams({
+                    num1: String(num1),
+                    num2: String(num2)
                 });
+
+                const data = await apiRequest(
+                    "/multiply?" + params.toString()
+                );
+
+                output.replaceChildren();
+
+                [
+                    ["First Number", data.number1],
+                    ["Second Number", data.number2],
+                    ["Result", data.result]
+                ].forEach(([label, value]) => {
+                    const p = document.createElement("p");
+                    const b = document.createElement("strong");
+
+                    b.textContent = label + ": ";
+                    p.appendChild(b);
+                    p.appendChild(document.createTextNode(String(value)));
+
+                    output.appendChild(p);
+                });
+            } catch (error) {
+                showError(output, error);
+            }
         }
     </script>
 </body>
