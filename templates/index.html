@@ -73,7 +73,8 @@
         #programResults,
         #sectionResults,
         #yearResults,
-        #saveResult {
+        #saveResult,
+        #classmateRecords {
             background-color: white;
             padding: 15px;
             margin-top: 10px;
@@ -140,6 +141,19 @@
         </button>
 
         <div id="studentList" aria-live="polite"></div>
+    </div>
+
+    <hr>
+
+    <!-- Classmate's Records -->
+    <div class="section">
+        <h2>Classmate's Records</h2>
+
+        <button type="button" onclick="loadClassmateRecords()">
+            Load Classmate's Records
+        </button>
+
+        <div id="classmateRecords" aria-live="polite"></div>
     </div>
 
     <hr>
@@ -853,6 +867,65 @@
                 });
             } catch (error) {
                 showError(output, error);
+            }
+        }
+
+        // Classmate's Records API
+        // Replace this URL with your classmate's actual deployed API URL.
+        const classmateAPI = "https://janinepagmanoja.onrender.com/api/students";
+
+        async function loadClassmateRecords() {
+            const output = document.getElementById("classmateRecords");
+            output.textContent = "Loading classmate's records...";
+
+            try {
+                const response = await fetch(classmateAPI);
+                let data;
+
+                try {
+                    data = await response.json();
+                } catch {
+                    throw new Error("The classmate API did not return valid JSON.");
+                }
+
+                if (!response.ok) {
+                    throw new Error(data.error || "Failed to retrieve classmate's records.");
+                }
+
+                console.log(data);
+                output.replaceChildren();
+
+                if (!Array.isArray(data) || data.length === 0) {
+                    output.textContent = "No classmate records found.";
+                    return;
+                }
+
+                data.forEach(student => {
+                    const record = document.createElement("div");
+                    record.className = "student-record";
+
+                    const details = document.createElement("p");
+                    details.textContent =
+                        "Database ID: " + (student.id ?? "N/A") +
+                        " | Student ID: " + (student.student_id ?? "N/A") +
+                        " | Name: " + (student.name ?? "N/A") +
+                        " | Program: " + (student.program ?? "N/A") +
+                        " | Year: " + (student.year ?? student.year_level ?? "N/A") +
+                        " | Section: " + (student.section ?? "N/A");
+
+                    record.appendChild(details);
+                    output.appendChild(record);
+                });
+            } catch (error) {
+                console.error("Unable to load classmate records:", error);
+                output.replaceChildren();
+
+                const message = document.createElement("p");
+                message.className = "error";
+                message.textContent =
+                    "Unable to load classmate's records. Check the API URL and CORS settings. " +
+                    (error.message || "");
+                output.appendChild(message);
             }
         }
 
