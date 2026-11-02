@@ -1,4 +1,9 @@
 Flask==3.1.2
-gunicorn==23.0.0
+Flask-Cors
+gunicorn==git add requirements.txt23.0.0
+<<<<<<< HEAD
 flask-cors
 requests
+=======
+requests
+>>>>>>> 3d2eaa9873005a102411deee41f66f02a4278652
