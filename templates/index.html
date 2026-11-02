@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -37,6 +38,11 @@
             background-color: #0056b3;
         }
 
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
         .edit-button {
             background-color: #198754;
         }
@@ -74,7 +80,7 @@
         #sectionResults,
         #yearResults,
         #saveResult,
-        #classmateRecords {
+        #partnerRecords {
             background-color: white;
             padding: 15px;
             margin-top: 10px;
@@ -110,10 +116,19 @@
         .success {
             color: #176b35;
         }
+
+        .partner-details {
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 12px;
+            margin: 10px 0;
+        }
     </style>
 </head>
 
 <body>
+
     <h1>Student API Interface</h1>
 
     <!-- Single Student -->
@@ -145,15 +160,20 @@
 
     <hr>
 
-    <!-- Classmate's Records -->
+    <!-- Partner Records -->
     <div class="section">
-        <h2>Classmate's Records</h2>
+        <h2>Partner Records</h2>
 
-        <button type="button" onclick="loadClassmateRecords()">
-            Load Classmate's Records
+        <p>
+            Retrieve student records from your partner's database.
+            You can view each record or save it to your own database.
+        </p>
+
+        <button type="button" onclick="loadPartnerRecords()">
+            Load Partner Records
         </button>
 
-        <div id="classmateRecords" aria-live="polite"></div>
+        <div id="partnerRecords" aria-live="polite"></div>
     </div>
 
     <hr>
@@ -169,6 +189,7 @@
         </p>
 
         <form id="studentForm">
+
             <label for="student_id">Student ID:</label>
             <input
                 type="text"
@@ -239,6 +260,7 @@
             >
                 Clear Form
             </button>
+
         </form>
 
         <div id="saveResult" aria-live="polite"></div>
@@ -345,7 +367,9 @@
         <div id="multiplyResult" aria-live="polite"></div>
     </div>
 
+
     <script>
+
         // Common GET API request function
         async function apiRequest(url) {
             const response = await fetch(url);
@@ -364,8 +388,10 @@
             return data;
         }
 
+
         // Common POST, PUT, and DELETE request function
         async function sendStudentRequest(url, method, studentData = null) {
+
             const options = {
                 method: method,
                 headers: {
@@ -395,6 +421,7 @@
             return data;
         }
 
+
         // Display an error message
         function showError(output, error) {
             console.error(error);
@@ -407,8 +434,10 @@
             output.appendChild(message);
         }
 
+
         // Display one student's information
         function displayStudent(student, output) {
+
             const record = document.createElement("div");
 
             const yearLabels = {
@@ -426,10 +455,12 @@
                 ["Name", student.name],
                 ["Program", student.program],
                 ["Year Level", yearLabels[year] ?? year],
-                ["Section", student.section]
+                ["Section", student.section],
+                ["Source", student.source]
             ];
 
             fields.forEach(([label, value]) => {
+
                 if (value === undefined || value === null) {
                     return;
                 }
@@ -447,8 +478,10 @@
             output.appendChild(record);
         }
 
+
         // Display all students with Edit and Delete buttons
         function displayStudents(students, output, emptyMessage) {
+
             output.replaceChildren();
 
             if (!Array.isArray(students)) {
@@ -468,6 +501,7 @@
             };
 
             students.forEach(student => {
+
                 const record = document.createElement("div");
                 record.className = "student-record";
 
@@ -475,6 +509,7 @@
                 const yearText = yearLabels[year] ?? year ?? "N/A";
 
                 const details = document.createElement("p");
+
                 details.textContent =
                     "Database ID: " + (student.id ?? "N/A") +
                     " | Student ID: " + (student.student_id ?? "N/A") +
@@ -489,26 +524,32 @@
                 editButton.type = "button";
                 editButton.className = "edit-button";
                 editButton.textContent = "Edit";
+
                 editButton.addEventListener("click", function() {
                     fillStudentForm(student);
                 });
+
                 record.appendChild(editButton);
 
                 const deleteButton = document.createElement("button");
                 deleteButton.type = "button";
                 deleteButton.className = "delete-button";
                 deleteButton.textContent = "Delete";
+
                 deleteButton.addEventListener("click", function() {
                     deleteStudent(student.id);
                 });
+
                 record.appendChild(deleteButton);
 
                 output.appendChild(record);
             });
         }
 
+
         // Load one student by database ID
         async function loadStudent() {
+
             const id = document.getElementById("studentIdInput").value.trim();
             const output = document.getElementById("result");
 
@@ -520,32 +561,45 @@
             output.textContent = "Loading student...";
 
             try {
+
                 const student = await apiRequest(
                     "/students/" + encodeURIComponent(id)
                 );
 
                 output.replaceChildren();
                 displayStudent(student, output);
+
             } catch (error) {
                 showError(output, error);
             }
         }
 
+
         // Load all students
         async function loadStudents() {
+
             const output = document.getElementById("studentList");
             output.textContent = "Loading students...";
 
             try {
+
                 const students = await apiRequest("/students");
-                displayStudents(students, output, "No student records found.");
+
+                displayStudents(
+                    students,
+                    output,
+                    "No student records found."
+                );
+
             } catch (error) {
                 showError(output, error);
             }
         }
 
+
         // Get and validate student form data
         function getStudentData() {
+
             const studentData = {
                 student_id: document.getElementById("student_id").value.trim(),
                 name: document.getElementById("student_name").value.trim(),
@@ -567,13 +621,16 @@
             return studentData;
         }
 
+
         // ADD student using POST /api/students
         document.getElementById("studentForm").addEventListener("submit", async function(event) {
+
             event.preventDefault();
 
             const output = document.getElementById("saveResult");
 
             try {
+
                 const studentData = getStudentData();
 
                 output.className = "";
@@ -590,26 +647,32 @@
 
                 this.reset();
 
-                // Refresh list after successful addition
                 await loadStudents();
 
             } catch (error) {
+
                 output.className = "error";
                 output.textContent = error.message;
+
             }
         });
 
+
         // Fill form when Edit is clicked
         function fillStudentForm(student) {
+
             document.getElementById("manageDatabaseId").value = student.id ?? "";
             document.getElementById("student_id").value = student.student_id ?? "";
             document.getElementById("student_name").value = student.name ?? "";
             document.getElementById("student_program").value = student.program ?? "";
+
             document.getElementById("student_year").value =
                 student.year ?? student.year_level ?? "";
+
             document.getElementById("student_section").value = student.section ?? "";
 
             const output = document.getElementById("saveResult");
+
             output.className = "";
             output.textContent =
                 "Student loaded into the form. Edit the details, then click Update Student.";
@@ -620,12 +683,15 @@
             });
         }
 
+
         // EDIT student using PUT /api/students/<id>
         async function editStudent() {
+
             const id = document.getElementById("manageDatabaseId").value.trim();
             const output = document.getElementById("saveResult");
 
             try {
+
                 if (!id || !Number.isSafeInteger(Number(id)) || Number(id) < 1) {
                     throw new Error("Click Edit beside a student record first.");
                 }
@@ -644,17 +710,20 @@
                 output.className = "success";
                 output.textContent = data.message || "Student updated successfully!";
 
-                // Refresh list after successful update
                 await loadStudents();
 
             } catch (error) {
+
                 output.className = "error";
                 output.textContent = error.message;
+
             }
         }
 
+
         // DELETE student using DELETE /api/students/<id>
         async function deleteStudent(id) {
+
             const output = document.getElementById("saveResult");
 
             if (!id) {
@@ -668,6 +737,7 @@
             }
 
             try {
+
                 output.className = "";
                 output.textContent = "Deleting student...";
 
@@ -679,26 +749,32 @@
                 output.className = "success";
                 output.textContent = data.message || "Student deleted successfully!";
 
-                // Refresh list after successful deletion
                 await loadStudents();
 
             } catch (error) {
+
                 output.className = "error";
                 output.textContent = error.message;
+
             }
         }
 
+
         // Clear student form
         function clearStudentForm() {
+
             document.getElementById("studentForm").reset();
 
             const output = document.getElementById("saveResult");
+
             output.className = "";
             output.textContent = "";
         }
 
+
         // Search students by program
         async function loadStudentsByProgram() {
+
             const program = document.getElementById("programInput").value;
             const output = document.getElementById("programResults");
 
@@ -710,9 +786,9 @@
             output.textContent = "Loading students...";
 
             try {
-                const params = new URLSearchParams({ program });
+
                 const students = await apiRequest(
-                    "/students/program?" + params.toString()
+                    "/students/program/" + encodeURIComponent(program)
                 );
 
                 displayStudents(
@@ -720,13 +796,16 @@
                     output,
                     "No students found for " + program + "."
                 );
+
             } catch (error) {
                 showError(output, error);
             }
         }
 
+
         // Search students by section
         async function loadStudentsBySection() {
+
             const section = document.getElementById("sectionInput").value;
             const output = document.getElementById("sectionResults");
 
@@ -738,9 +817,9 @@
             output.textContent = "Loading students...";
 
             try {
-                const params = new URLSearchParams({ section });
+
                 const students = await apiRequest(
-                    "/students/section?" + params.toString()
+                    "/students/section/" + encodeURIComponent(section)
                 );
 
                 displayStudents(
@@ -748,13 +827,16 @@
                     output,
                     "No students found in Section " + section + "."
                 );
+
             } catch (error) {
                 showError(output, error);
             }
         }
 
+
         // Search students by year level
         async function loadStudentsByYear() {
+
             const year = document.getElementById("yearInput").value;
             const output = document.getElementById("yearResults");
 
@@ -766,9 +848,9 @@
             output.textContent = "Loading students...";
 
             try {
-                const params = new URLSearchParams({ year });
+
                 const students = await apiRequest(
-                    "/students/year?" + params.toString()
+                    "/students/year/" + encodeURIComponent(year)
                 );
 
                 const labels = {
@@ -782,6 +864,7 @@
 
                 const heading = document.createElement("h3");
                 heading.textContent = "Students - " + labels[year];
+
                 output.appendChild(heading);
 
                 displayStudents(
@@ -789,13 +872,16 @@
                     output,
                     "No students found in " + labels[year] + "."
                 );
+
             } catch (error) {
                 showError(output, error);
             }
         }
 
+
         // Greeting API
         async function sayHello() {
+
             const name = document.getElementById("nameInput").value.trim();
             const output = document.getElementById("greeting");
 
@@ -807,16 +893,24 @@
             output.textContent = "Loading greeting...";
 
             try {
+
                 const params = new URLSearchParams({ name });
-                const data = await apiRequest("/hello?" + params.toString());
+
+                const data = await apiRequest(
+                    "/hello?" + params.toString()
+                );
+
                 output.textContent = data.message;
+
             } catch (error) {
                 showError(output, error);
             }
         }
 
+
         // Multiply API
         async function multiplyNumbers() {
+
             const num1Input = document.getElementById("num1");
             const num2Input = document.getElementById("num2");
             const output = document.getElementById("multiplyResult");
@@ -840,6 +934,7 @@
             output.textContent = "Calculating...";
 
             try {
+
                 const params = new URLSearchParams({
                     num1: String(num1),
                     num2: String(num2)
@@ -856,81 +951,198 @@
                     ["Second Number", data.number2],
                     ["Result", data.result]
                 ].forEach(([label, value]) => {
+
                     const p = document.createElement("p");
                     const b = document.createElement("strong");
 
                     b.textContent = label + ": ";
+
                     p.appendChild(b);
                     p.appendChild(document.createTextNode(String(value)));
 
                     output.appendChild(p);
                 });
+
             } catch (error) {
                 showError(output, error);
             }
         }
 
-        // Classmate's Records API
-        // Replace this URL with your classmate's actual deployed API URL.
-        const classmateAPI = "https://janinepagmanoja.onrender.com/api/students";
 
-        async function loadClassmateRecords() {
-            const output = document.getElementById("classmateRecords");
-            output.textContent = "Loading classmate's records...";
+        // ==========================================
+        // PARTNER RECORDS
+        // ==========================================
+
+        // Retrieve partner records through YOUR Flask application.
+        async function loadPartnerRecords() {
+
+            const output = document.getElementById("partnerRecords");
+
+            output.textContent = "Loading partner records...";
 
             try {
-                const response = await fetch(classmateAPI);
-                let data;
 
-                try {
-                    data = await response.json();
-                } catch {
-                    throw new Error("The classmate API did not return valid JSON.");
-                }
+                // Calls your Flask /partner-records route.
+                const students = await apiRequest("/partner-records");
 
-                if (!response.ok) {
-                    throw new Error(data.error || "Failed to retrieve classmate's records.");
-                }
-
-                console.log(data);
                 output.replaceChildren();
 
-                if (!Array.isArray(data) || data.length === 0) {
-                    output.textContent = "No classmate records found.";
+                if (!Array.isArray(students) || students.length === 0) {
+                    output.textContent = "No partner records found.";
                     return;
                 }
 
-                data.forEach(student => {
+                students.forEach(student => {
+
                     const record = document.createElement("div");
                     record.className = "student-record";
 
                     const details = document.createElement("p");
+
                     details.textContent =
-                        "Database ID: " + (student.id ?? "N/A") +
-                        " | Student ID: " + (student.student_id ?? "N/A") +
+                        "Student ID: " + (student.student_id ?? "N/A") +
                         " | Name: " + (student.name ?? "N/A") +
                         " | Program: " + (student.program ?? "N/A") +
                         " | Year: " + (student.year ?? student.year_level ?? "N/A") +
                         " | Section: " + (student.section ?? "N/A");
 
                     record.appendChild(details);
-                    output.appendChild(record);
-                });
-            } catch (error) {
-                console.error("Unable to load classmate records:", error);
-                output.replaceChildren();
 
-                const message = document.createElement("p");
-                message.className = "error";
-                message.textContent =
-                    "Unable to load classmate's records. Check the API URL and CORS settings. " +
-                    (error.message || "");
-                output.appendChild(message);
+
+                    // VIEW BUTTON
+                    const viewButton = document.createElement("button");
+
+                    viewButton.type = "button";
+                    viewButton.textContent = "View";
+
+                    const detailBox = document.createElement("div");
+                    detailBox.className = "partner-details";
+                    detailBox.hidden = true;
+
+                    viewButton.addEventListener("click", function() {
+
+                        if (detailBox.hidden) {
+
+                            detailBox.replaceChildren();
+                            displayStudent(student, detailBox);
+
+                            detailBox.hidden = false;
+                            viewButton.textContent = "Hide Details";
+
+                        } else {
+
+                            detailBox.hidden = true;
+                            viewButton.textContent = "View";
+
+                        }
+                    });
+
+                    record.appendChild(viewButton);
+                    record.appendChild(detailBox);
+
+
+                    // SAVE TO MY DATABASE BUTTON
+                    const saveButton = document.createElement("button");
+
+                    saveButton.type = "button";
+                    saveButton.className = "edit-button";
+                    saveButton.textContent = "Save to My Database";
+
+                    const saveStatus = document.createElement("p");
+
+                    saveButton.addEventListener("click", function() {
+
+                        savePartnerRecord(
+                            student,
+                            saveButton,
+                            saveStatus
+                        );
+
+                    });
+
+                    record.appendChild(saveButton);
+                    record.appendChild(saveStatus);
+
+                    output.appendChild(record);
+
+                });
+
+            } catch (error) {
+
+                showError(output, error);
+
             }
         }
 
+
+        // Save partner student to YOUR database
+        async function savePartnerRecord(student, button, statusOutput) {
+
+            const studentData = {
+                student_id: String(student.student_id ?? "").trim(),
+                name: String(student.name ?? "").trim(),
+                program: String(student.program ?? "").trim(),
+                year: Number(student.year ?? student.year_level),
+                section: String(student.section ?? "").trim()
+            };
+
+            // Validate partner student information
+            if (
+                !studentData.student_id ||
+                !studentData.name ||
+                !studentData.program ||
+                !studentData.section ||
+                ![1, 2, 3, 4].includes(studentData.year)
+            ) {
+
+                statusOutput.className = "error";
+
+                statusOutput.textContent =
+                    "Invalid partner record. Some required information is missing.";
+
+                return;
+            }
+
+            button.disabled = true;
+
+            statusOutput.className = "";
+            statusOutput.textContent = "Saving student to your database...";
+
+            try {
+
+                // Send partner record to your Flask POST API.
+                const result = await sendStudentRequest(
+                    "/api/students",
+                    "POST",
+                    studentData
+                );
+
+                statusOutput.className = "success";
+
+                statusOutput.textContent =
+                    (result.message || "Student saved successfully!") +
+                    " New Database ID: " + result.id;
+
+                button.textContent = "Saved";
+
+                // Refresh your local student database list.
+                await loadStudents();
+
+            } catch (error) {
+
+                statusOutput.className = "error";
+                statusOutput.textContent = error.message;
+
+                button.disabled = false;
+
+            }
+        }
+
+
         // Automatically load students when the page opens
         document.addEventListener("DOMContentLoaded", loadStudents);
+
     </script>
+
 </body>
 </html>

@@ -1,11 +1,11 @@
-
-
 from flask import Flask, jsonify, request, render_template
 from flask_cors import CORS
 import sqlite3
+import requests
 
 app = Flask(__name__)
 CORS(app)
+
 
 def get_db_connection():
     conn = sqlite3.connect('students.db')
@@ -176,7 +176,8 @@ def get_students_by_year():
         return jsonify([dict(student) for student in students])
     finally:
         conn.close()
-        
+
+
 # Add a new student
 @app.route('/api/students', methods=['POST'])
 def add_student():
@@ -215,15 +216,16 @@ def add_student():
         cursor = conn.execute(
             """
             INSERT INTO students
-            (student_id, name, program, year, section)
-            VALUES (?, ?, ?, ?, ?)
+            (student_id, name, program, year, section, source)
+            VALUES (?, ?, ?, ?, ?, ?)
             """,
             (
                 str(data['student_id']).strip(),
                 str(data['name']).strip(),
                 str(data['program']).strip(),
                 year,
-                str(data['section']).strip()
+                str(data['section']).strip(),
+                str(data.get('source', 'External API')).strip()
             )
         )
 
@@ -250,6 +252,7 @@ def add_student():
 
     finally:
         conn.close()
+
 
 # Get a student by ID
 @app.route('/api/students/<int:id>', methods=['GET'])
@@ -394,12 +397,83 @@ def delete_student(id):
 
     finally:
         conn.close()
+
+
+# Get all students through the API
 @app.route('/api/students', methods=['GET'])
 def api_students():
     conn = get_db_connection()
-    rows = conn.execute('SELECT * FROM students').fetchall()
-    conn.close()
-    return jsonify([dict(row) for row in rows])
+
+    try:
+        rows = conn.execute(
+            'SELECT * FROM students'
+        ).fetchall()
+
+        return jsonify([dict(row) for row in rows])
+
+    finally:
+        conn.close()
+
+
+# Retrieve records from Partner Flask API
+@app.route('/partner-records')
+def partner_records():
+
+    # REPLACE THIS WITH YOUR CLASSMATE'S ACTUAL RENDER URL
+    partner_url = "https://janinepagmanoja.onrender.com/api/students"
+
+    try:
+        response = requests.get(partner_url, timeout=15)
+        response.raise_for_status()
+
+        return jsonify(response.json())
+
+    except requests.RequestException:
+        app.logger.exception("Unable to retrieve partner data.")
+
+        return jsonify({
+            "error": "Unable to retrieve partner data"
+        }), 502
+
+    except ValueError:
+        return jsonify({
+            "error": "Partner API returned invalid JSON."
+        }), 502
+
+
+# Import a student from Partner API
+@app.route('/import-student', methods=['POST'])
+def import_student():
+    data = request.get_json()
+
+    conn = get_db_connection()
+
+    try:
+        conn.execute(
+            """
+            INSERT INTO students
+            (student_id, name, program, year, section, source)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                data['student_id'],
+                data['name'],
+                data['program'],
+                data['year'],
+                data['section'],
+                'Classmate API'
+            )
+        )
+
+        conn.commit()
+
+        return jsonify({
+            "message": "Remote record saved"
+        }), 201
+
+    finally:
+        conn.close()
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5001, debug=True)

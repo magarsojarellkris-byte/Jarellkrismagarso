@@ -1,4 +1,3 @@
-
 import sqlite3
 
 conn = sqlite3.connect('students.db')
@@ -12,24 +11,38 @@ CREATE TABLE IF NOT EXISTS students (
     name TEXT NOT NULL,
     program TEXT NOT NULL,
     year INTEGER NOT NULL,
-    section TEXT NOT NULL
+    section TEXT NOT NULL,
+    source TEXT DEFAULT 'Local'
 )
 ''')
 
+# Add the source column if the database already exists without it
+cursor.execute("PRAGMA table_info(students)")
+columns = [column[1] for column in cursor.fetchall()]
+
+if 'source' not in columns:
+    cursor.execute("""
+        ALTER TABLE students
+        ADD COLUMN source TEXT DEFAULT 'Local'
+    """)
+
+# WARNING: This deletes ALL existing student records.
+# Keep this line only if you intentionally want to reset the records.
 cursor.execute('DELETE FROM students')
 
 students = [
-    ('24-00138', 'Jarell Kris Magarso', 'BSIT', 1, 'B'),
-    ('24-00132', 'Sofia Mendoza', 'BSHM', 1, 'B'),
-    ('25-00133', 'Daniel Garcia', 'BSIT', 2, 'A'),
-    ('21-00134', 'Isabella Torres', 'BSHM', 1, 'B'),
-    ('23-00135', 'Miguel Flores', 'BSIT', 4, 'A'),
-    ('25-00136', 'Andrea Castillo', 'BSED', 2, 'C')
+    ('24-00154', 'Janine Pagmanoja', 'BSIT', 3, 'B', 'Local'),
+    ('25-00094', 'Kristel Joy Camimo', 'BSHM', 2, 'C', 'Local'),
+    ('26-00034', 'Princess Ubasan', 'BSA', 1, 'A', 'Local'),
+    ('26-00254', 'Sheine Hope Quibingco', 'BSIT', 1, 'D', 'Local'),
+    ('25-00089', 'Joemarie Lapasara', 'BSIT', 2, 'B', 'Local'),
+    ('25-00176', 'Andrea Castillo', 'BSED', 2, 'C', 'Local')
 ]
 
 cursor.executemany('''
-INSERT INTO students (student_id, name, program, year, section)
-VALUES (?, ?, ?, ?, ?)
+INSERT INTO students
+    (student_id, name, program, year, section, source)
+VALUES (?, ?, ?, ?, ?, ?)
 ''', students)
 
 # Save changes and close the connection
