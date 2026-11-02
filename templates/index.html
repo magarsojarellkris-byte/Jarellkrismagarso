@@ -1075,7 +1075,7 @@
         }
 
 
-        // Save partner student to YOUR database
+        // Save partner student to YOUR database using POST /import-student
         async function savePartnerRecord(student, button, statusOutput) {
 
             const studentData = {
@@ -1110,18 +1110,27 @@
 
             try {
 
-                // Send partner record to your Flask POST API.
-                const result = await sendStudentRequest(
-                    "/api/students",
-                    "POST",
-                    studentData
-                );
+                // Send selected partner record to /import-student using POST
+                const response = await fetch('/import-student', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(studentData)
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(
+                        result.error || result.message || "Failed to save student."
+                    );
+                }
 
                 statusOutput.className = "success";
 
                 statusOutput.textContent =
-                    (result.message || "Student saved successfully!") +
-                    " New Database ID: " + result.id;
+                    result.message || "Remote record saved successfully!";
 
                 button.textContent = "Saved";
 
