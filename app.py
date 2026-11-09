@@ -565,7 +565,7 @@ def api_students():
 def partner_records():
 
     # Your classmate's deployed Render API
-    partner_url = "https://janinepagmanoja.onrender.com/api/students"
+    partner_url = "http://3.106.100.202/api/students"
 
     try:
         response = requests.get(partner_url, timeout=15)
